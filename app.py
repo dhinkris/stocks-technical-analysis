@@ -35,7 +35,7 @@ def fetch_and_calculate(stock_symbol, start_date, end_date):
     stock_data['MA50'] = stock_data['Close'].rolling(window=50).mean()
     stock_data['MA200'] = stock_data['Close'].rolling(window=200).mean()
     
-    return stock_data
+    return stock_symbol, stock_data
 
 # Function to provide buy, hold, or sell suggestion based on RSI and MACD
 def get_suggestion(stock_data):
@@ -104,10 +104,10 @@ def get_all_suggestions(stock_symbol):
     suggestions = {}
     for period in periods:
         start_date, end_date = calculate_date_range(period)
-        stock_data = fetch_and_calculate(stock_symbol, start_date, end_date)
+        stock_info, stock_data = fetch_and_calculate(stock_symbol, start_date, end_date)
         suggestion, color = get_suggestion(stock_data)
         suggestions[period] = {"suggestion": suggestion, "color": color}
-    return suggestions
+    return stock_info, suggestions
 
 
 # Layout: selector on the left, plots on the right
@@ -124,13 +124,14 @@ with col1:
     # start_date, end_date = calculate_date_range(period)
 
 # Fetch data and calculate indicators
-stock_data = fetch_and_calculate(stock_symbol, start_date, end_date)
+stock_info, stock_data = fetch_and_calculate(stock_symbol, start_date, end_date)
 # Display suggestions for all time intervals
-suggestions = get_all_suggestions(stock_symbol)
+stock_info, suggestions = get_all_suggestions(stock_symbol)
 
 with col2:
     # st.write(f"Suggestion: **{suggestion}**", unsafe_allow_html=True)
     # st.markdown(f"<h3 style='color: {color};'>{suggestion}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3>{stock_info}</h3>", unsafe_allow_html=True)
     for period, result in suggestions.items():
         st.markdown(f"<h4>{period}: <span style='color: {result['color']};'>{result['suggestion']}</span></h4>", unsafe_allow_html=True)
 
