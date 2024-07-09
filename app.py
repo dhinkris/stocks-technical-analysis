@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from datetime import datetime
 import pandas_datareader.data as web
+import os
 
 # Set Streamlit page config to full screen
 st.set_page_config(layout="wide")
@@ -56,8 +57,21 @@ def get_suggestion(stock_data):
 
 # Get list of stock symbols (using a static list for this example)
 def get_stock_symbols():
-    nasdaq = web.get_nasdaq_symbols()
-    symbols = nasdaq.index.tolist()
+   # Check if the file exists and is not empty
+    if not os.path.exists('symbols.txt') or os.stat('symbols.txt').st_size == 0:
+        nasdaq = web.get_nasdaq_symbols()
+        symbols = nasdaq.index.tolist()
+        # Write symbols to a text file
+        with open('symbols.txt', 'w') as file:
+            for symbol in symbols:
+                try:
+                    file.write(symbol + '\n')
+                except:
+                    print("Unable to write:", symbol)
+    else:
+        # Read symbols from the text file if it exists and is not empty
+        with open('symbols.txt', 'r') as file:
+            symbols = [line.strip() for line in file.readlines()]
     return symbols
 
 # Streamlit app
