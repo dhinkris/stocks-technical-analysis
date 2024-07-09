@@ -6,6 +6,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime
 import pandas_datareader.data as web
 import os
+from datetime import datetime, timedelta
 
 # Set Streamlit page config to full screen
 st.set_page_config(layout="wide")
@@ -37,22 +38,23 @@ def fetch_and_calculate(stock_symbol, start_date, end_date):
 
 # Function to provide buy, hold, or sell suggestion based on RSI and MACD
 def get_suggestion(stock_data):
-    suggestion = "Hold"
-    color = "yellow"
+    suggestion=''
     if stock_data['RSI'].iloc[-1] > 70:
-        suggestion = "Sell (Overbought)"
+        suggestion+= "Sell (Overbought) | "
         color = "red"
     elif stock_data['RSI'].iloc[-1] < 30:
-        suggestion = "Buy (Oversold)"
-        color = "green"
+        suggestion+= "Buy (Oversold) | "
+        color= "green"
     
     if stock_data['MACD'].iloc[-1] < stock_data['MACD_Signal'].iloc[-1]:
-        suggestion = "Sell (MACD Bearish Crossover)"
+        suggestion+="Sell (MACD Bearish Crossover)"
         color = "red"
     elif stock_data['MACD'].iloc[-1] > stock_data['MACD_Signal'].iloc[-1]:
-        suggestion = "Buy (MACD Bullish Crossover)"
+        suggestion+="Buy (MACD Bullish Crossover)"
         color = "green"
-    
+    if len(suggestion)==0:
+        suggestion = "Hold"
+        color = "yellow"
     return suggestion, color
 
 # Get list of stock symbols (using a static list for this example)
@@ -77,22 +79,58 @@ def get_stock_symbols():
 # Streamlit app
 st.title("Stock Technical Analysis Dashboard")
 
+# Function to calculate date range
+def calculate_date_range(period):
+    end_date = datetime.today()
+    if period == "1W":
+        start_date = end_date - timedelta(weeks=1)
+    elif period == "1M":
+        start_date = end_date - timedelta(weeks=4)
+    elif period == "3M":
+        start_date = end_date - timedelta(weeks=13)
+    elif period == "YTD":
+        start_date = datetime(end_date.year, 1, 1)
+    elif period == "1Y":
+        start_date = end_date - timedelta(weeks=52)
+    elif period == "5Y":
+        start_date = end_date - timedelta(weeks=260)
+    return start_date, end_date
+
+# Function to get suggestions for all time intervals
+def get_all_suggestions(stock_symbol):
+    periods = ["1W", "1M", "3M", "YTD", "1Y", "5Y"]
+    suggestions = {}
+    for period in periods:
+        start_date, end_date = calculate_date_range(period)
+        stock_data = fetch_and_calculate(stock_symbol, start_date, end_date)
+        suggestion, color = get_suggestion(stock_data)
+        suggestions[period] = {"suggestion": suggestion, "color": color}
+    return suggestions
+
+
 # Layout: selector on the left, plots on the right
 col1, col2 = st.columns([1, 3])
 
 with col1:
     stock_symbols = get_stock_symbols()
     stock_symbol = st.selectbox("Select a stock", stock_symbols)
+
     start_date = st.date_input("Start date", datetime(2023, 1, 1))
     end_date = st.date_input("End date", datetime(2024, 7, 8))
 
+    # period = st.selectbox("Select time period", ["1W", "1M", "3M", "YTD", "1Y", "5Y"])
+    # start_date, end_date = calculate_date_range(period)
+
 # Fetch data and calculate indicators
 stock_data = fetch_and_calculate(stock_symbol, start_date, end_date)
-suggestion, color = get_suggestion(stock_data)
+# Display suggestions for all time intervals
+suggestions = get_all_suggestions(stock_symbol)
 
 with col2:
-    st.write(f"Suggestion: **{suggestion}**", unsafe_allow_html=True)
-    st.markdown(f"<h3 style='color: {color};'>{suggestion}</h3>", unsafe_allow_html=True)
+    # st.write(f"Suggestion: **{suggestion}**", unsafe_allow_html=True)
+    # st.markdown(f"<h3 style='color: {color};'>{suggestion}</h3>", unsafe_allow_html=True)
+    for period, result in suggestions.items():
+        st.markdown(f"<h4>{period}: <span style='color: {result['color']};'>{result['suggestion']}</span></h4>", unsafe_allow_html=True)
 
     # Create subplots
     fig = make_subplots(rows=2, cols=2, shared_xaxes=True,
