@@ -6,13 +6,14 @@ from plotly.subplots import make_subplots
 from datetime import datetime
 import pandas_datareader.data as web
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 # Set Streamlit page config to full screen
 st.set_page_config(layout="wide")
 
 # Function to fetch stock data and calculate technical indicators
 def fetch_and_calculate(stock_symbol, start_date, end_date):
+    stock_symbol = stock_symbol.split(':-:')[1]
     # Fetch stock data
     stock_data = yf.download(stock_symbol, start=start_date, end=end_date)
     
@@ -63,11 +64,12 @@ def get_stock_symbols():
     if not os.path.exists('symbols.txt') or os.stat('symbols.txt').st_size == 0:
         nasdaq = web.get_nasdaq_symbols()
         symbols = nasdaq.index.tolist()
+        names = nasdaq['Security Name'].tolist()
         # Write symbols to a text file
         with open('symbols.txt', 'w') as file:
-            for symbol in symbols:
+            for symbol, name in zip(symbols, names):
                 try:
-                    file.write(symbol + '\n')
+                    file.write(name+':-:'+symbol + '\n')
                 except:
                     print("Unable to write:", symbol)
     else:
@@ -116,7 +118,7 @@ with col1:
     stock_symbol = st.selectbox("Select a stock", stock_symbols)
 
     start_date = st.date_input("Start date", datetime(2023, 1, 1))
-    end_date = st.date_input("End date", datetime(2024, 7, 8))
+    end_date = st.date_input("End date", datetime.today())
 
     # period = st.selectbox("Select time period", ["1W", "1M", "3M", "YTD", "1Y", "5Y"])
     # start_date, end_date = calculate_date_range(period)
